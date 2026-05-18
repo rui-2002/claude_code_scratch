@@ -49,6 +49,27 @@ def main():
                     "required": ["file_path"]
                     }
                 }
+                },
+                {
+                "type": "function",
+                "function": {
+                    "name": "Write",
+                    "description": "Write content to a file",
+                    "parameters": {
+                    "type": "object",
+                    "required": ["file_path", "content"],
+                    "properties": {
+                        "file_path": {
+                        "type": "string",
+                        "description": "The path of the file to write to"
+                        },
+                        "content": {
+                        "type": "string",
+                        "description": "The content to write to the file"
+                        }
+                    }
+                    }
+                }
                 }]
         )
 
@@ -88,17 +109,30 @@ def main():
         for tool_call in response.tool_calls:
             print("Tool call exists !!!", file=sys.stderr)
             print("Tool call function name :", tool_call.function.name, file=sys.stderr)
-            print("Tool call function arguments :", tool_call.function.arguments, file=sys.stderr)
-            print("Tool call function arguments type :", type(tool_call.function.arguments), file=sys.stderr)
 
-            tool_args = json.loads(tool_call.function.arguments)
-            file_path = tool_args["file_path"]
 
-            print("Parsed arguments type :", type(tool_args), file=sys.stderr)
-            print("File path :", file_path, file=sys.stderr)
 
-            with open(file_path, "r") as f:
-                file_content = f.read()
+            if tool_call.function.name=="Read":
+                print("Tool call function arguments :", tool_call.function.arguments, file=sys.stderr)
+                print("Tool call function arguments type :", type(tool_call.function.arguments), file=sys.stderr)
+
+                tool_args = json.loads(tool_call.function.arguments)
+                file_path = tool_args["file_path"]
+
+                print("Parsed arguments type :", type(tool_args), file=sys.stderr)
+                print("File path :", file_path, file=sys.stderr)
+
+                with open(file_path, "r") as f:
+                    file_content = f.read()
+
+            elif tool_call.function.name=="Write":
+                tool_args=json.loads(tool_call.function.arguments)
+                file_path=tool_args["file_path"]
+                content=tool_args["content"]
+                print("File path :", file_path, file=sys.stderr)
+                with open(file_path,"w") as f:
+                    f.write(content)
+                file_content="File written successfully."
 
             messages.append({
                 "role": "tool",
