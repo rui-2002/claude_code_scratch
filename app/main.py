@@ -23,61 +23,89 @@ def main():
 
     client = OpenAI(api_key=API_KEY, base_url=BASE_URL)
 
-    chat = client.chat.completions.create(
-        model="anthropic/claude-haiku-4.5",
-        messages=[{"role": "user", "content": args.p}],
-        max_tokens=512,
-        tools=[{
-            "type": "function",
-            "function": {
-                "name": "Read",
-                "description": "Read and return the contents of a file",
-                "parameters": {
-                "type": "object",
-                "properties": {
-                    "file_path": {
-                    "type": "string",
-                    "description": "The path to the file to read"
+
+    messages=[{"role":"user","content":args.p}]
+    
+
+    while(True):
+
+        chat = client.chat.completions.create(
+            model="anthropic/claude-haiku-4.5",
+            messages=messages,
+            max_tokens=512,
+            tools=[{
+                "type": "function",
+                "function": {
+                    "name": "Read",
+                    "description": "Read and return the contents of a file",
+                    "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "file_path": {
+                        "type": "string",
+                        "description": "The path to the file to read"
+                        }
+                    },
+                    "required": ["file_path"]
                     }
-                },
-                "required": ["file_path"]
                 }
-            }
-            }]
-    )
+                }]
+        )
 
-    if not chat.choices or len(chat.choices) == 0:
-        raise RuntimeError("no choices in response")
+        if not chat.choices or len(chat.choices) == 0:
+            raise RuntimeError("no choices in response")
 
-    # You can use print statements as follows for debugging, they'll be visible when running tests.
-    print("Logs from your program will appear here!", file=sys.stderr)
+        response=chat.choices[0].message
+
+        tool_calls_list=[]
+
+        if not response.tool_calls:
+            print(response.content)
+            break
 
 
-    response=chat.choices[0].message
+        if response.tool_calls:
+            for tc in response.tool_calls:
+                tool_calls_list.append({
+                    
+                        "id": tc.id,
+                        "type": "function",
+                        "function": {
+                            "name": tc.function.name,
+                            "arguments": tc.function.arguments
+                        }
+                    
+                })
 
-    if(response.tool_calls):
-        print("Tool call exists !!!",file=sys.stderr)
-        print("Tool call function name :",response.tool_calls[0].function.name,file=sys.stderr)
-        print("Tool call function argumens :",response.tool_calls[0].function.arguments,file=sys.stderr)
-        print("Tool call function argumens type :",type(response.tool_calls[0].function.arguments),file=sys.stderr)
-        tool_args=json.loads(response.tool_calls[0].function.arguments)
-        file_path=tool_args["file_path"]
-        print("Tool call function argumens type :",type(tool_args),file=sys.stderr)
+        messages.append({
+            "role": "assistant",
+            "content": response.content,
+            "tool_calls": tool_calls_list if tool_calls_list else None
+        })
 
-        with open(file_path,"r") as f:
-            print(f.read())
-    else:
-        print("Doesn't Exist : NONE", file=sys.stderr)
-        print(response.content)
+        
 
-    # print("=== FULL MESSAGE ===", file=sys.stderr)
-    # print(chat.choices[0].message, file=sys.stderr)
-    # print("=== TOOL CALLS ===", file=sys.stderr)
-    # print(chat.choices[0].message.tool_calls, file=sys.stderr)
-    # print("=== CONTENT ===", file=sys.stderr)
-    # print(chat.choices[0].message.content, file=sys.stderr)
-    # print("=== FINISH REASON ===", file=sys.stderr)
-    # print(chat.choices[0].finish_reason, file=sys.stderr)
+        for tool_call in response.tool_calls:
+            print("Tool call exists !!!", file=sys.stderr)
+            print("Tool call function name :", tool_call.function.name, file=sys.stderr)
+            print("Tool call function arguments :", tool_call.function.arguments, file=sys.stderr)
+            print("Tool call function arguments type :", type(tool_call.function.arguments), file=sys.stderr)
 
+            tool_args = json.loads(tool_call.function.arguments)
+            file_path = tool_args["file_path"]
+
+            print("Parsed arguments type :", type(tool_args), file=sys.stderr)
+            print("File path :", file_path, file=sys.stderr)
+
+            with open(file_path, "r") as f:
+                file_content = f.read()
+
+            messages.append({
+                "role": "tool",
+                "tool_call_id": tool_call.id,
+                "content": file_content
+            })
+
+        
 if __name__ == "__main__":
     main()
