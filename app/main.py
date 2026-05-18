@@ -1,6 +1,7 @@
 import argparse
 import os
 import sys
+import json
 
 from openai import OpenAI
 from dotenv import load_dotenv
@@ -51,9 +52,32 @@ def main():
     # You can use print statements as follows for debugging, they'll be visible when running tests.
     print("Logs from your program will appear here!", file=sys.stderr)
 
-    # TODO: Uncomment the following line to pass the first stage
-    print(chat.choices[0].message.content)
 
+    response=chat.choices[0].message
+
+    if(response.tool_calls):
+        print("Tool call exists !!!",file=sys.stderr)
+        print("Tool call function name :",response.tool_calls[0].function.name,file=sys.stderr)
+        print("Tool call function argumens :",response.tool_calls[0].function.arguments,file=sys.stderr)
+        print("Tool call function argumens type :",type(response.tool_calls[0].function.arguments),file=sys.stderr)
+        tool_args=json.loads(response.tool_calls[0].function.arguments)
+        file_path=tool_args["file_path"]
+        print("Tool call function argumens type :",type(tool_args),file=sys.stderr)
+
+        with open(file_path,"r") as f:
+            print(f.read())
+    else:
+        print("Doesn't Exist : NONE", file=sys.stderr)
+        print(response.content)
+
+    # print("=== FULL MESSAGE ===", file=sys.stderr)
+    # print(chat.choices[0].message, file=sys.stderr)
+    # print("=== TOOL CALLS ===", file=sys.stderr)
+    # print(chat.choices[0].message.tool_calls, file=sys.stderr)
+    # print("=== CONTENT ===", file=sys.stderr)
+    # print(chat.choices[0].message.content, file=sys.stderr)
+    # print("=== FINISH REASON ===", file=sys.stderr)
+    # print(chat.choices[0].finish_reason, file=sys.stderr)
 
 if __name__ == "__main__":
     main()
