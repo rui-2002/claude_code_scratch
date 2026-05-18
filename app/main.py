@@ -2,6 +2,7 @@ import argparse
 import os
 import sys
 import json
+import subprocess
 
 from openai import OpenAI
 from dotenv import load_dotenv
@@ -70,7 +71,25 @@ def main():
                     }
                     }
                 }
-                }]
+                },
+                {
+                "type": "function",
+                "function": {
+                    "name": "Bash",
+                    "description": "Execute a shell command",
+                    "parameters": {
+                    "type": "object",
+                    "required": ["command"],
+                    "properties": {
+                        "command": {
+                        "type": "string",
+                        "description": "The command to execute"
+                        }
+                    }
+                    }
+                }
+                }
+]
         )
 
         if not chat.choices or len(chat.choices) == 0:
@@ -133,6 +152,21 @@ def main():
                 with open(file_path,"w") as f:
                     f.write(content)
                 file_content="File written successfully."
+
+            elif tool_call.function.name=="Bash":
+                tool_args = json.loads(tool_call.function.arguments)
+                command = tool_args["command"]
+    
+                print("Command :", command, file=sys.stderr)
+                result=subprocess.run(
+                    command,
+                    shell=True,
+                    capture_output=True,
+                    text=True
+                )
+                file_content=result.stdout+result.stderr
+                
+                
 
             messages.append({
                 "role": "tool",
