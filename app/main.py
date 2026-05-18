@@ -3,9 +3,13 @@ import os
 import sys
 
 from openai import OpenAI
+from dotenv import load_dotenv
+
+load_dotenv()
 
 API_KEY = os.getenv("OPENROUTER_API_KEY")
 BASE_URL = os.getenv("OPENROUTER_BASE_URL", default="https://openrouter.ai/api/v1")
+
 
 
 def main():
@@ -21,6 +25,7 @@ def main():
     chat = client.chat.completions.create(
         model="anthropic/claude-haiku-4.5",
         messages=[{"role": "user", "content": args.p}],
+        max_tokens=512,
     )
 
     if not chat.choices or len(chat.choices) == 0:
@@ -30,7 +35,7 @@ def main():
     print("Logs from your program will appear here!", file=sys.stderr)
 
     # TODO: Uncomment the following line to pass the first stage
-    # print(chat.choices[0].message.content)
+    print(chat.choices[0].message.content)
 
 
 if __name__ == "__main__":
